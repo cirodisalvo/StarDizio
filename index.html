@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>LemmITA</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1e3a8a">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      background: #f4f6f9;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    }
+
+    #app-frame {
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      border: none;
+      display: block;
+    }
+
+    #fallback {
+      display: none;
+      position: fixed;
+      inset: 0;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+      color: #1e293b;
+    }
+
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 20px;
+      color: white;
+    }
+
+    .overlay.visible { display: flex; }
+
+    .install-popup {
+      background: #1e293b;
+      border-radius: 28px;
+      padding: 48px 40px;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      animation: popIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.9) translateY(20px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .app-icon {
+      width: 110px;
+      height: 110px;
+      border-radius: 24px;
+      margin-bottom: 28px;
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+      object-fit: cover;
+    }
+
+    .install-popup h1 { font-size: 28px; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.5px; }
+    .install-popup p { font-size: 16px; color: #94a3b8; line-height: 1.5; margin-bottom: 36px; }
+
+    .btn-install {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      color: white;
+      border: none;
+      padding: 18px 32px;
+      font-size: 18px;
+      font-weight: 600;
+      border-radius: 16px;
+      width: 100%;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+    }
+
+    .btn-install:disabled { opacity: 0.6; cursor: default; }
+
+    .btn-close {
+      margin-top: 20px;
+      background: transparent;
+      border: none;
+      color: #64748b;
+      font-size: 15px;
+      cursor: pointer;
+      padding: 8px 16px;
+    }
+
+    .status-message { display: none; font-size: 15px; color: #94a3b8; margin-top: 16px; }
+  </style>
+
+
+</head>
+<body>
+
+  <iframe
+    id="app-frame"
+    src="https://script.google.com/macros/s/AKfycbyHnNdIH-iJvBU7vDc48amXoH682TrLG6YfTOUoQvdIB2R0wTQmrOsrL5uqSkURtRSr/exec"
+    title="LemmITA"
+    allow="fullscreen"
+  ></iframe>
+
+  <div id="fallback">
+    <div>
+      <p>Impossibile caricare l'app in modalità integrata.</p>
+    </div>
+  </div>
+
+  <div class="overlay" id="installOverlay">
+    <div class="install-popup">
+      <img src="icon-512.png" alt="Icona App" class="app-icon" onerror="this.src='https://via.placeholder.com/110x110/3b82f6/ffffff?text=APP'">
+      <h1>Installa l'App</h1>
+      <p>Aggiungi LemmITA alla schermata Home per un accesso rapido e un'esperienza migliore.</p>
+      <button class="btn-install" id="installBtn">Installa App</button>
+      <button class="btn-close" id="closeBtn">Non ora</button>
+      <div class="status-message" id="statusMsg"></div>
+    </div>
+  </div>
+
+ <script>
+  const frame = document.getElementById('app-frame');
+  const fallback = document.getElementById('fallback');
+  frame.addEventListener('error', () => {
+    frame.style.display = 'none';
+    fallback.style.display = 'flex';
+  });
+
+  let deferredPrompt = null;
+  const overlay = document.getElementById('installOverlay');
+  const installBtn = document.getElementById('installBtn');
+  const closeBtn = document.getElementById('closeBtn');
+  const statusMsg = document.getElementById('statusMsg');
+
+  // Verifica se l'app è già installata o aperta in standalone
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+
+  // Rilevamento iOS
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+  if (!isStandalone) {
+    // Gestione Android / Desktop (Chromium)
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      overlay.classList.add('visible');
+    });
+
+    // Gestione specifica per iOS (Safari non supporta prima install prompt)
+    if (isIOS) {
+      // Mostriamo il popup adattando il messaggio per iOS
+      installBtn.style.display = 'none'; // Nascondiamo il bottone diretto
+      statusMsg.style.display = 'block';
+      statusMsg.innerHTML = 'Per installare su iOS: tocca il pulsante <strong>Condividi</strong> ⎋ e seleziona <strong>Aggiungi alla schermata Home</strong> ➕.';
+      overlay.classList.add('visible');
+    }
+  }
+
+  installBtn.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    installBtn.disabled = true;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    statusMsg.style.display = 'block';
+    statusMsg.textContent = outcome === 'accepted'
+      ? 'Installazione in corso…'
+      : 'Puoi installare l\'app in qualsiasi altro momento.';
+      
+    deferredPrompt = null;
+    setTimeout(() => overlay.classList.remove('visible'), 2000);
+  });
+
+  closeBtn.addEventListener('click', () => {
+    overlay.classList.remove('visible');
+  });
+
+  window.addEventListener('appinstalled', () => {
+    overlay.classList.remove('visible');
+    console.log('PWA installata con successo');
+  });
+
+  // Registrazione Service Worker con gestione errori
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => console.log('Service Worker registrato:', reg))
+      .catch(err => console.error('Errore registrazione Service Worker:', err));
+  }
+</script>
+</body>
+</html>
