@@ -1,7 +1,7 @@
 {
-  "name": "LemmITA",
-  "short_name": "LemmITA",
-  "description": "Dizionario italiano con definizioni, sinonimi, etimologia ed esempi",
+  "name": "StarDizio",
+  "short_name": "StarDizio",
+  "description": "Dizionari vari",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
